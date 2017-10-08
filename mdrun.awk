@@ -51,7 +51,7 @@ function calc_force_angl(array, force){
 			cos_thita=-1
 		}
 		sin_thita=sqrt(1-cos_thita^2)
-		thita=atan2(sin_thita,cos_thita)*180/atan2(0,-0)
+		thita=atan2(sin_thita,cos_thita)
 		dba=thita-s_angl[i]
 		t3=vec1d*vec2d-naiseki^2
 		if (t3 < 1) {
@@ -145,7 +145,7 @@ function calc_energy_angl(array){
 			cos_thita=-1
 		}
 		sin_thita=sqrt(1-cos_thita^2)
-		thita=atan2(sin_thita,cos_thita)*180/atan2(0,-0)
+		thita=atan2(sin_thita,cos_thita)
 		dba=thita-s_angl[i]
 		e_angl+=k_angl*dba^2+k_angl*(cos_thita+1)
 	}
@@ -206,7 +206,7 @@ for (i=1; i<=N_atom; i++){
 		velo[i,id]=0
 	}
 	s_bond[i]=1.0
-	s_angl[i]=180.0
+	s_angl[i]=180.0*(atan2(0,-0)/180)
 }
 
 calc_force_bond(array, force)
@@ -238,7 +238,7 @@ for (loop=1; loop<=10000; loop++){
 	if (loop%1000 == 0) {
 		max_score=2^53
 		HU_bind_num = 1+int((xorshift()/max_score)*(N_atom-2))
-		s_angl[HU_bind_num]=100.0
+		s_angl[HU_bind_num]=100.0*(atan2(0,-0)/180)
 	}
 
     for (i=1; i<=N_atom; i++){
