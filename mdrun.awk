@@ -110,7 +110,7 @@ function calc_velo(velo, force, rforce){
 	}
 }
 
-function rand_force(r){
+function rand_force(r){   ### 値のオーダーがforceの0.1倍も小さいんだけどいいの？あと、３方向への配分とかは？
 	max_score=2^53
 	ran1 = xorshift()/max_score
 	ran2 = xorshift()/max_score
@@ -171,7 +171,7 @@ function output_trajectory(array){
     print "MODEL" >> "trajectory.movie"
     print "<<<<" >> "trajectory.movie"
     for (i=1; i<=N_atom; i++){
-        printf("%4s%7s%11s%4s%4s%8.3f%8.3f%8.3f%12s\n","ATOM",i,"  CA  XXX A",i,"    ",array[i,1],array[i,2],array[i,3],"  0.00  0.00") >> "trajectory.movie"
+        printf("%4s%7s%6s%3s%2s%4s%4s%8.3f%8.3f%8.3f%12s\n","ATOM",i,"  CA  ",HU_arr[i]," A",i,"    ",array[i,1],array[i,2],array[i,3],"  0.00  0.00") >> "trajectory.movie"
     }
     print ">>>>" >> "trajectory.movie"
     print "ENDMDL" >> "trajectory.movie"
@@ -182,7 +182,22 @@ function output_energy(array){
     calc_energy_angl(array)
     calc_energy_exv(array)
     total=e_bond+e_angl+e_exv
-    print "loop e_bond e_angl e_exv total",loop,e_bond,e_angl,e_exv,total >> "energy.ts"
+    print loop,e_bond,e_angl,e_exv,total >> "energy.ts"
+}
+
+function shuffle_num(HU_bind_arr){
+	for (i=1; i<=N_atom; i++){
+		HU_bind_arr[i]=i
+	}
+	for (i=N_atom; i >= 1; i--) {
+		j = int((i+1)*rand())
+		if (j == 0) {
+			j = 1
+		}
+		tmp = HU_bind_arr[i]
+		HU_bind_arr[i] = HU_bind_arr[j]
+		HU_bind_arr[j] = tmp
+	}
 }
 
 BEGIN{
@@ -190,16 +205,16 @@ srand()
 x = 123456789; y = 362436069; z = 521288629; w = 88675123; ### for xorshift
 w=w*int(rand()*10)   ### 32bit整数をきちんとrand()から出力するには？
 
-dt=0.001; gamma=0.5; m=10; kb=0.6; T=3
-k_bond=10000.0; k_angl=10000.0; k_exv=0.001;
-cutoff=2.0; d_exv=0.3
+dt=0.1; gamma=0.25; m=100; kb=0.002; T=300.0   ### kb*T=0.6
+k_bond=10.0; k_angl=1.0; k_exv=0.6
+cutoff=2.0; d_exv=1.0
 loop=0
 
 read_file(ARGV[1], array)
 N_atom=length(array)/3
 
-output_trajectory(array)
-output_energy(array)
+shuffle_num(HU_bind_arr)
+HU_num=1
 
 for (i=1; i<=N_atom; i++){
 	for (id=1; id<=3; id++){
@@ -207,7 +222,11 @@ for (i=1; i<=N_atom; i++){
 	}
 	s_bond[i]=1.0
 	s_angl[i]=180.0*(atan2(0,-0)/180)
+	HU_arr[i]="XXX"
 }
+
+output_trajectory(array)
+output_energy(array)
 
 calc_force_bond(array, force)
 calc_force_angl(array, force)
@@ -220,25 +239,26 @@ for (i=1; i<=N_atom; i++){
 }
 
 ### loop
-for (loop=1; loop<=10000; loop++){
+for (loop=1; loop<=1000000; loop++){
 	calc_xyz(array, velo, force, rforce)
 	calc_force_bond(array, force)
 	calc_force_angl(array, force)
     calc_force_exv(array, force)
 	calc_velo(velo, force, rforce)
 
-    if (loop%10 == 0) {
+    if (loop%100 == 0) {
         output_trajectory(array)
     }
 
-    if (loop%100 == 0) {
+    if (loop%1000 == 0) {
         output_energy(array)
 	}
 
-	if (loop%1000 == 0) {
-		max_score=2^53
-		HU_bind_num = 1+int((xorshift()/max_score)*(N_atom-2))
+	if (loop%10000 == 0 && loop <= 300000) {
+		HU_bind_num=HU_bind_arr[HU_num]		
 		s_angl[HU_bind_num]=100.0*(atan2(0,-0)/180)
+		HU_arr[HU_bind_num+1]="AAA"
+		HU_num+=1
 	}
 
     for (i=1; i<=N_atom; i++){
@@ -251,5 +271,5 @@ for (loop=1; loop<=10000; loop++){
     }
 }
 ### loop
-}
 
+}
